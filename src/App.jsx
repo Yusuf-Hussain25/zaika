@@ -11,6 +11,7 @@ const Cart = lazy(() => import("./pages/Cart/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout/Checkout"));
 const Orders = lazy(() => import("./pages/Orders/Orders"));
 const OrderDetail = lazy(() => import("./pages/Orders/OrderDetail"));
+const Account = lazy(() => import("./pages/Account/Account"));
 const AdminLayout = lazy(() => import("./pages/Admin/AdminLayout"));
 const Dashboard = lazy(() => import("./pages/Admin/Dashboard"));
 const AdminOrders = lazy(() => import("./pages/Admin/AdminOrders"));
@@ -37,6 +38,7 @@ const App = () => (
                     <Route path="checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
                     <Route path="orders" element={<RequireAuth><Orders /></RequireAuth>} />
                     <Route path="orders/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
+                    <Route path="account" element={<RequireAuth><Account /></RequireAuth>} />
                     <Route path="*" element={<NotFound />} />
                 </Route>
             </Routes>
