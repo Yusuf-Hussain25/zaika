@@ -22,7 +22,7 @@ app.use("/api/settings", settingsRoutes);
 
 app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
 
-// eslint-disable-next-line no-unused-vars -- Express needs the 4-argument signature to treat this as an error handler
+// Express needs the 4-argument signature to treat this as an error handler
 app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     if (status >= 500) console.error(err);

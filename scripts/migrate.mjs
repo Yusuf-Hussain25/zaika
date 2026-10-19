@@ -1,5 +1,6 @@
 // npm run migrate: creates or updates the database tables
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ quiet: true });
 import { migrate } from "../server/migrate.js";
 
 try {

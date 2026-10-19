@@ -1,0 +1,302 @@
+/* Logo */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-text {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.logo-suffix {
+  margin-left: 8px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  vertical-align: middle;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+/* Avatar: initials on a soft colour derived from the name */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-weight: 650;
+  letter-spacing: -.02em;
+  color: hsl(var(--h) 55% 32%);
+  background: hsl(var(--h) 80% 90%);
+}
+
+:root[data-theme="dark"] .avatar {
+  color: hsl(var(--h) 80% 85%);
+  background: hsl(var(--h) 40% 24%);
+}
+
+/* Veg / non-veg mark */
+.veg-mark {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1.6px solid currentColor;
+  border-radius: 3px;
+  background: var(--bg-elev);
+}
+
+.veg-mark.veg { color: var(--veg); }
+.veg-mark.nonveg { color: var(--nonveg); }
+
+.veg-mark.veg span {
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.veg-mark.nonveg span {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 7px solid currentColor;
+}
+
+/* Quantity stepper */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-grad);
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+  animation: pop-in .25s var(--ease-spring);
+}
+
+.stepper button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 100%;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+
+.stepper button:hover:not(:disabled) { background: rgba(255, 255, 255, .16); }
+.stepper button:disabled { opacity: .5; cursor: not-allowed; }
+
+.stepper span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 650;
+  font-size: 14.5px;
+}
+
+.stepper-sm { height: 32px; }
+.stepper-sm button { width: 30px; }
+.stepper-sm span { font-size: 13.5px; }
+
+/* Order status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 580;
+  white-space: nowrap;
+  color: var(--tone);
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+
+.status-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tone-info { --tone: var(--info); }
+.tone-warning { --tone: var(--warning); }
+.tone-accent { --tone: var(--accent-strong); }
+.tone-success { --tone: var(--success); }
+.tone-muted { --tone: var(--text-3); }
+
+.tone-accent .dot,
+.tone-info .dot,
+.tone-warning .dot {
+  box-shadow: 0 0 0 0 currentColor;
+  animation: pulse 1.8s ease-out infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 50%, transparent); }
+  80%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 48px 20px;
+}
+
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 6px;
+  border-radius: 20px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.empty-state h3 { font-size: 18px; }
+
+.empty-state p {
+  max-width: 380px;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+/* Modal and drawer (native <dialog>) */
+.modal,
+.drawer {
+  border: none;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  max-width: none;
+  max-height: none;
+}
+
+.modal::backdrop,
+.drawer::backdrop {
+  background: rgba(29, 22, 17, .38);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade-in .2s ease-out;
+}
+
+.modal {
+  margin: auto;
+  width: min(calc(100vw - 24px), var(--modal-w, 520px));
+}
+
+.modal-sm { --modal-w: 420px; }
+.modal-lg { --modal-w: 760px; }
+
+.modal-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px);
+  border-radius: var(--radius-xl);
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: pop-in .28s var(--ease-out);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px 24px;
+}
+
+.modal-head h2 {
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.modal-body {
+  padding: 4px 24px 24px;
+  overflow-y: auto;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.drawer {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  width: min(100vw, 480px);
+}
+
+.drawer-left { margin: 0 auto 0 0; }
+
+.drawer-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--panel-solid);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: slide-in .32s var(--ease-out);
+}
+
+.drawer-left .drawer-inner {
+  border-left: none;
+  border-right: 1px solid var(--border);
+  animation-name: slide-in-left;
+}
+
+.drawer-body {
+  flex: 1;
+  padding: 4px 24px 24px;
+  overflow-y: auto;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (max-width: 560px) {
+  .modal {
+    margin: auto 0 0;
+    width: 100vw;
+  }
+
+  .modal-inner {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 92dvh;
+    animation-name: sheet-up;
+  }
+
+  .modal-body { padding: 4px 18px 20px; }
+  .modal-head { padding: 16px 16px 12px 18px; }
+  .modal-foot { padding: 14px 18px calc(14px + env(safe-area-inset-bottom)); }
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
