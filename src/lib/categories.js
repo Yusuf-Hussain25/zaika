@@ -13,7 +13,7 @@ const ICONS = {
     drinks: CupSoda,
 };
 
-export const categoryIcon = (id) => ICONS[id] ?? LayoutGrid;
+const categoryIcon = (id) => ICONS[id] ?? LayoutGrid;
 
 export const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ ...c, icon: categoryIcon(c.id) }));
 

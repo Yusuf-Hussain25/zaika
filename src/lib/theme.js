@@ -9,7 +9,7 @@ export const getTheme = () => {
     }
 };
 
-export const applyTheme = (theme = getTheme()) => {
+const applyTheme = (theme = getTheme()) => {
     const root = document.documentElement;
     if (theme === "dark") root.setAttribute("data-theme", "dark");
     else root.removeAttribute("data-theme");
