@@ -5,6 +5,7 @@ import { requireAdmin, requireStaff } from "../lib/auth.js";
 import { DEMO_DOMAIN, fetchOrder, fetchOrders, maskEmail } from "../lib/orders.js";
 import { ORDER_FLOW } from "../../shared/menu.js";
 import { withAutopilot } from "../lib/autopilot.js";
+import { getStripe } from "../lib/store.js";
 
 const router = Router();
 const TZ = "Asia/Kolkata";
@@ -39,13 +40,20 @@ router.patch("/orders/:id", requireAdmin, async (req, res) => {
     const id = cleanId(req.params.id, "Order");
     const status = String(req.body.status || "");
     if (![...ORDER_FLOW, "cancelled"].includes(status)) throw badRequest("Unknown order status.");
-    const [order] = await sql`select status, payment_method from orders where id = ${id}`;
+    const [order] = await sql`select status, payment_method, paid, stripe_session_id from orders where id = ${id}`;
     if (!order) throw notFound("Order not found.");
     if (["delivered", "cancelled"].includes(order.status)) throw badRequest(`This order is already ${order.status}.`);
     if (order.status === "awaiting_payment") throw badRequest("This order hasn't been paid yet.");
     if (order.status === status) return res.json({ order: await fetchOrder(id, req.user) });
     if (status !== "cancelled" && ORDER_FLOW.indexOf(status) < ORDER_FLOW.indexOf(order.status)) {
         throw badRequest("Orders can only move forward.");
+    }
+    // Cancelling a paid card order refunds it first; if Stripe refuses, the order stays as it was
+    if (status === "cancelled" && order.paid && order.payment_method === "card") {
+        const stripe = getStripe();
+        if (!stripe || !order.stripe_session_id) throw badRequest("This card payment can't be refunded automatically. Refund it in Stripe first.");
+        const session = await stripe.checkout.sessions.retrieve(order.stripe_session_id);
+        await stripe.refunds.create({ payment_intent: session.payment_intent });
     }
     await transaction((tx) => [
         // Cash is collected at the door, so a delivered COD order is now paid
