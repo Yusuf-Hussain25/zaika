@@ -22,6 +22,8 @@ export const toFood = (f) => ({
 
 const cleanImageUrl = (value) => {
     const url = String(value || "").trim();
+    // Photos bundled with the site (public/dishes) are referenced by path
+    if (/^\/[\w\-/.]+\.(webp|jpe?g|png|avif)$/i.test(url) && !url.includes("..")) return url;
     try {
         const u = new URL(url);
         if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error();

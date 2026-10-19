@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "migrate": "node scripts/migrate.mjs",
-    "api": "node --watch server/index.js"
+    "api": "node --watch server/index.js",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
