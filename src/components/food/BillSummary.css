@@ -1,0 +1,77 @@
+.bill {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bill-free {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 13.5px;
+}
+
+.bill-free.is-unlocked {
+  background: var(--veg-soft);
+  color: var(--success);
+}
+
+.bill-free-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bill-free-text span { color: var(--text); }
+
+.bill-free-track {
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  overflow: hidden;
+}
+
+.bill-free-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: currentColor;
+  transition: width .5s var(--ease-out);
+}
+
+.bill dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bill dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14.5px;
+}
+
+.bill dt { color: var(--text-2); }
+.bill dd { font-weight: 560; }
+
+.bill .bill-total {
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px dashed var(--border-strong);
+  font-size: 17px;
+}
+
+.bill .bill-total dt { color: var(--text); font-weight: 650; }
+.bill .bill-total dd { font-weight: 720; }
+
+.bill-free-tag {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--success);
+}

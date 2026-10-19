@@ -1,0 +1,225 @@
+.orders-page { max-width: 880px; }
+
+.orders-group { margin-bottom: 36px; }
+
+.orders-group h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+
+.orders-group h2 .live-dot { color: var(--accent); }
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-card {
+  overflow: hidden;
+  animation: fade-up .4s var(--ease-out) both;
+  transition: box-shadow .25s, border-color .25s;
+}
+
+.order-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+
+.order-card.is-active {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-sm);
+}
+
+.order-card-main {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 20px;
+}
+
+.order-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.order-card-top strong { font-size: 15px; }
+
+.order-card-items {
+  font-size: 14.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-card-meta { font-size: 13px; }
+.order-card-chevron { color: var(--text-3); flex-shrink: 0; }
+
+.order-progress {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  max-width: 260px;
+  margin-top: 4px;
+}
+
+.order-progress span {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+
+.order-progress span.on { background: var(--accent-grad); }
+
+.order-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Order detail */
+.order-back { margin-bottom: 14px; }
+
+.order-placed {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  border-radius: var(--radius-lg);
+  color: var(--success);
+  background: var(--veg-soft);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+}
+
+.order-placed span { color: var(--text-2); }
+
+.order-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 20px;
+  align-items: start;
+}
+
+.order-track {
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.order-eta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: var(--accent-grad);
+  box-shadow: var(--shadow-accent);
+}
+
+.order-eta.is-late { background: linear-gradient(135deg, #d98a00, #f0592a); }
+
+.order-eta div {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.order-eta span { font-size: 13px; opacity: .85; }
+.order-eta strong { font-size: 20px; letter-spacing: -.02em; }
+
+.order-placed-at { font-size: 13px; }
+
+.order-detail-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.order-detail-actions:empty { display: none; }
+
+.order-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-box {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-box h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.order-box h2 svg { color: var(--accent); }
+
+.order-note {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-2);
+  background: var(--surface-2);
+}
+
+.order-note svg { flex-shrink: 0; margin-top: 2px; }
+
+.order-payment {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.order-payment > svg { color: var(--accent); flex-shrink: 0; }
+
+.order-payment div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-payment div span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+.order-payment .lucide-circle-check { color: var(--success); }
+
+@media (max-width: 900px) {
+  .order-detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .order-card-main { gap: 12px; padding: 14px; }
+  .order-card-main .order-thumbs img:nth-child(n+3),
+  .order-card-main .order-thumbs-more { display: none; }
+  .order-card-chevron { display: none; }
+  .order-card-actions { padding: 10px 14px; }
+  .order-track { padding: 20px; }
+}
