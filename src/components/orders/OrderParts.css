@@ -115,10 +115,14 @@
 .order-items-name {
   flex: 1;
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
+  line-height: 1.35;
+}
+
+/* Inline so a long name wraps under the mark instead of pushing it onto its own line */
+.order-items-name .veg-mark {
+  display: inline-grid;
+  vertical-align: -2px;
+  margin-right: 6px;
 }
 
 /* Stacked thumbnails */
