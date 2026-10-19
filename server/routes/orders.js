@@ -1,0 +1,156 @@
+import { Router } from "express";
+import { randomUUID } from "node:crypto";
+import { sql, transaction } from "../db.js";
+import { HttpError, badRequest, cleanAddress, cleanId, cleanText, notFound } from "../lib/http.js";
+import { isStaff, requireAuth } from "../lib/auth.js";
+import { CURRENCY, deliveryFeeFor, getStripe, readSettings } from "../lib/store.js";
+import { fetchOrder, fetchOrders } from "../lib/orders.js";
+import { readCart } from "./cart.js";
+
+const router = Router();
+router.use(requireAuth);
+
+const ownOrder = async (req) => {
+    const order = await fetchOrder(cleanId(req.params.id, "Order"), req.user);
+    if (!order || (order.customer.id !== req.user.id && !isStaff(req.user))) throw notFound("Order not found.");
+    return order;
+};
+
+// Where Stripe sends the customer back to. APP_URL wins so a forged Origin header can't redirect elsewhere.
+const appUrl = (req) => (process.env.APP_URL || req.get("origin") || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+
+router.get("/", async (req, res) => {
+    res.json({ orders: await fetchOrders({ where: "o.user_id = $1", params: [req.user.id], limit: 50, viewer: req.user }) });
+});
+
+router.get("/:id", async (req, res) => {
+    res.json({ order: await ownOrder(req) });
+});
+
+// Places an order from the saved cart. Prices and fees come from the database, never from the browser.
+router.post("/", async (req, res) => {
+    const settings = await readSettings();
+    if (!settings.storeOpen) throw new HttpError(409, "Zaika's kitchen is closed right now. Please try again later.");
+
+    const address = cleanAddress(req.body.address);
+    const note = cleanText(req.body.note, { field: "Note", max: 200, optional: true });
+    const method = req.body.paymentMethod === "card" ? "card" : "cod";
+    const stripe = method === "card" ? getStripe() : null;
+    if (method === "card" && !stripe) throw badRequest("Card payments are not available. Please choose cash on delivery.");
+
+    const lines = await sql`
+        select f.*, c.quantity from cart_items c join foods f on f.id = c.food_id
+        where c.user_id = ${req.user.id} order by f.name`;
+    if (!lines.length) throw badRequest("Your cart is empty.");
+    const soldOut = lines.filter((l) => !l.is_available).map((l) => l.name);
+    if (soldOut.length) throw badRequest(`${soldOut.join(", ")} ${soldOut.length > 1 ? "are" : "is"} sold out. Remove ${soldOut.length > 1 ? "them" : "it"} to continue.`);
+
+    const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+    const deliveryFee = deliveryFeeFor(subtotal, settings);
+    const total = subtotal + deliveryFee;
+    const id = randomUUID();
+    const status = method === "card" ? "awaiting_payment" : "placed";
+
+    await transaction((tx) => [
+        tx`insert into orders (id, user_id, status, payment_method, subtotal, delivery_fee, total, address, note)
+           values (${id}, ${req.user.id}, ${status}, ${method}, ${subtotal}, ${deliveryFee}, ${total}, ${JSON.stringify(address)}::jsonb, ${note})`,
+        tx`insert into order_items (order_id, food_id, name, price, quantity, image_url, is_veg)
+           select ${id}, * from unnest(
+             ${lines.map((l) => l.id)}::uuid[], ${lines.map((l) => l.name)}::text[], ${lines.map((l) => l.price)}::int[],
+             ${lines.map((l) => l.quantity)}::int[], ${lines.map((l) => l.image_url)}::text[], ${lines.map((l) => l.is_veg)}::boolean[])`,
+        tx`insert into order_events (order_id, status) values (${id}, ${status})`,
+        // Card orders keep the cart until payment succeeds, so a cancelled checkout loses nothing
+        ...(method === "cod" ? [tx`delete from cart_items where user_id = ${req.user.id}`] : []),
+        tx`update users set address = ${JSON.stringify(address)}::jsonb, phone = coalesce(phone, ${address.phone}) where id = ${req.user.id}`,
+    ]);
+
+    if (method === "card") {
+        try {
+            const base = appUrl(req);
+            const session = await stripe.checkout.sessions.create({
+                mode: "payment",
+                client_reference_id: id,
+                metadata: { orderId: id },
+                customer_email: req.user.email,
+                line_items: [
+                    ...lines.map((l) => ({
+                        quantity: l.quantity,
+                        price_data: { currency: CURRENCY, unit_amount: l.price * 100, product_data: { name: l.name } },
+                    })),
+                    ...(deliveryFee
+                        ? [{ quantity: 1, price_data: { currency: CURRENCY, unit_amount: deliveryFee * 100, product_data: { name: "Delivery fee" } } }]
+                        : []),
+                ],
+                success_url: `${base}/orders/${id}?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${base}/checkout?cancelled=${id}`,
+            });
+            await sql`update orders set stripe_session_id = ${session.id} where id = ${id}`;
+            return res.status(201).json({ order: await fetchOrder(id, req.user), checkoutUrl: session.url });
+        } catch (err) {
+            await transaction((tx) => [
+                tx`update orders set status = 'cancelled', updated_at = now() where id = ${id}`,
+                tx`insert into order_events (order_id, status) values (${id}, 'cancelled')`,
+            ]);
+            throw new HttpError(502, `Could not start card payment: ${err.message}`);
+        }
+    }
+
+    res.status(201).json({ order: await fetchOrder(id, req.user), cart: {} });
+});
+
+// Called when Stripe redirects back. Trusts only what Stripe reports for this order's session.
+router.post("/:id/confirm-payment", async (req, res) => {
+    const order = await ownOrder(req);
+    if (order.paid || order.paymentMethod !== "card") return res.json({ order });
+    const stripe = getStripe();
+    const [{ stripe_session_id: sessionId }] = await sql`select stripe_session_id from orders where id = ${order.id}`;
+    if (!stripe || !sessionId) throw badRequest("This order has no card payment to confirm.");
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === "paid" && session.metadata?.orderId === order.id) {
+        await transaction((tx) => [
+            tx`update orders set paid = true, status = case when status = 'awaiting_payment' then 'placed' else status end, updated_at = now() where id = ${order.id}`,
+            ...(order.status === "awaiting_payment" ? [tx`insert into order_events (order_id, status) values (${order.id}, 'placed')`] : []),
+            tx`delete from cart_items where user_id = ${order.customer.id}`,
+        ]);
+    }
+    res.json({ order: await fetchOrder(order.id, req.user), cart: await readCart(req.user.id) });
+});
+
+// Customers can cancel until the kitchen starts cooking
+router.post("/:id/cancel", async (req, res) => {
+    const order = await ownOrder(req);
+    if (order.customer.id !== req.user.id) throw notFound("Order not found.");
+    if (!["awaiting_payment", "placed"].includes(order.status)) {
+        throw badRequest("This order is already being prepared and can't be cancelled.");
+    }
+    if (order.paid && order.paymentMethod === "card") {
+        const stripe = getStripe();
+        const [{ stripe_session_id: sessionId }] = await sql`select stripe_session_id from orders where id = ${order.id}`;
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        await stripe.refunds.create({ payment_intent: session.payment_intent });
+    }
+    await transaction((tx) => [
+        tx`update orders set status = 'cancelled', updated_at = now() where id = ${order.id}`,
+        tx`insert into order_events (order_id, status) values (${order.id}, 'cancelled')`,
+    ]);
+    res.json({ order: await fetchOrder(order.id, req.user) });
+});
+
+// Puts a past order's dishes back in the cart (skipping anything sold out or removed)
+router.post("/:id/reorder", async (req, res) => {
+    const order = await ownOrder(req);
+    const items = order.items.filter((i) => i.foodId);
+    if (items.length) {
+        await sql`
+            insert into cart_items (user_id, food_id, quantity)
+            select ${req.user.id}, f.id, g.qty
+            from unnest(${items.map((i) => i.foodId)}::uuid[], ${items.map((i) => i.quantity)}::int[]) as g(id, qty)
+            join foods f on f.id = g.id and f.is_available
+            on conflict (user_id, food_id) do update set quantity = least(cart_items.quantity + excluded.quantity, 50)`;
+    }
+    const cart = await readCart(req.user.id);
+    const added = items.filter((i) => cart[i.foodId]).length;
+    res.json({ cart, added, skipped: order.items.length - added });
+});
+
+export default router;

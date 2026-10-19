@@ -14,9 +14,6 @@ npm-debug.log*
 .env.*
 !.env.example
 
-# Uploaded files
-backend/uploads/*
-!backend/uploads/.gitkeep
 
 # Editor / OS
 .vscode/*
