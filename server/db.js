@@ -1,9 +1,23 @@
 import net from "node:net";
-import { neon } from "@neondatabase/serverless";
+import { neon, neonConfig } from "@neondatabase/serverless";
 
 // Node tries each IP for only 250ms before moving on, which is shorter than a round trip
 // from India to a US Neon region, so every attempt timed out. Give each address 2s.
 net.setDefaultAutoSelectFamilyAttemptTimeout(2000);
+
+// Retry only when the connection itself failed: the query never reached Postgres, so it is
+// safe to send again. Smooths over brief network blips and Neon waking from sleep.
+const CONNECT_ERRORS = new Set(["ETIMEDOUT", "ENETUNREACH", "ECONNREFUSED", "EAI_AGAIN", "UND_ERR_CONNECT_TIMEOUT"]);
+neonConfig.fetchFunction = async (url, init) => {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await fetch(url, init);
+        } catch (err) {
+            if (attempt >= 2 || !CONNECT_ERRORS.has(err.cause?.code)) throw err;
+            await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)));
+        }
+    }
+};
 
 let client;
 

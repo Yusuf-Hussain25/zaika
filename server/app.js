@@ -24,6 +24,10 @@ app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
 
 // Express needs the 4-argument signature to treat this as an error handler
 app.use((err, _req, res, _next) => {
+    if (/Error connecting to database|fetch failed/.test(err.message)) {
+        console.error("database unreachable:", err.cause?.code || err.message);
+        return res.status(503).json({ error: "We can't reach the kitchen's database right now. Please try again in a moment." });
+    }
     const status = err.status || err.statusCode || 500;
     if (status >= 500) console.error(err);
     const message = err.expose || status < 500 ? err.message : "Something went wrong on our side. Please try again.";
