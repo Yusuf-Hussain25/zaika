@@ -140,7 +140,9 @@ const SiteFooter = () => (
 const SiteLayout = () => {
     const { pathname } = useLocation();
     // New page, new scroll position (hash links on the home page handle their own)
-    useEffect(() => window.scrollTo(0, 0), [pathname]);
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [pathname]);
 
     return (
         <div className="site">
