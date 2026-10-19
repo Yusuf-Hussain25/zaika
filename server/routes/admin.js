@@ -4,13 +4,14 @@ import { badRequest, cleanId, cleanInt, notFound } from "../lib/http.js";
 import { requireAdmin, requireStaff } from "../lib/auth.js";
 import { DEMO_DOMAIN, fetchOrder, fetchOrders, maskEmail } from "../lib/orders.js";
 import { ORDER_FLOW } from "../../shared/menu.js";
+import { withAutopilot } from "../lib/autopilot.js";
 
 const router = Router();
 const TZ = "Asia/Kolkata";
 const ACTIVE = ["placed", "preparing", "out_for_delivery"];
 
 // GET /api/admin/orders?status=active|all|<status>&q=&limit=
-router.get("/orders", requireStaff, async (req, res) => {
+router.get("/orders", requireStaff, withAutopilot, async (req, res) => {
     const status = String(req.query.status || "all");
     const q = String(req.query.q || "").trim();
     const where = [];
@@ -57,7 +58,7 @@ router.patch("/orders/:id", requireAdmin, async (req, res) => {
 });
 
 // Dashboard numbers for the last `days` days, compared with the period before
-router.get("/stats", requireStaff, async (req, res) => {
+router.get("/stats", requireStaff, withAutopilot, async (req, res) => {
     const days = cleanInt(req.query.days ?? 7, { field: "Days", min: 1, max: 90 });
     const counted = `status not in ('cancelled', 'awaiting_payment')`;
 
@@ -77,7 +78,7 @@ router.get("/stats", requireStaff, async (req, res) => {
     );
 
     const series = await query(
-        `select d::date as day,
+        `select to_char(d, 'YYYY-MM-DD') as day,
                 coalesce(sum(o.total) filter (where o.status not in ('cancelled', 'awaiting_payment')), 0)::int as revenue,
                 count(o.id) filter (where o.status not in ('cancelled', 'awaiting_payment'))::int as orders
          from generate_series((now() at time zone '${TZ}')::date - 13, (now() at time zone '${TZ}')::date, interval '1 day') d

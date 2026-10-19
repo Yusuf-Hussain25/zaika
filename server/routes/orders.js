@@ -6,6 +6,7 @@ import { isStaff, requireAuth } from "../lib/auth.js";
 import { CURRENCY, deliveryFeeFor, getStripe, readSettings } from "../lib/store.js";
 import { fetchOrder, fetchOrders } from "../lib/orders.js";
 import { readCart } from "./cart.js";
+import { withAutopilot } from "../lib/autopilot.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -19,11 +20,11 @@ const ownOrder = async (req) => {
 // Where Stripe sends the customer back to. APP_URL wins so a forged Origin header can't redirect elsewhere.
 const appUrl = (req) => (process.env.APP_URL || req.get("origin") || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
 
-router.get("/", async (req, res) => {
+router.get("/", withAutopilot, async (req, res) => {
     res.json({ orders: await fetchOrders({ where: "o.user_id = $1", params: [req.user.id], limit: 50, viewer: req.user }) });
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", withAutopilot, async (req, res) => {
     res.json({ order: await ownOrder(req) });
 });
 

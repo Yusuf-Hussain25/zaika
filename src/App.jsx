@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router";
 import { Toaster } from "sonner";
 import SiteLayout from "./components/layout/SiteLayout";
-import { RequireAuth, RouteFallback } from "./components/layout/Guards";
+import { RequireAuth, RequireStaff, RouteFallback } from "./components/layout/Guards";
 import NotFound from "./pages/NotFound";
 
 const Home = lazy(() => import("./pages/Home/Home"));
@@ -11,6 +11,12 @@ const Cart = lazy(() => import("./pages/Cart/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout/Checkout"));
 const Orders = lazy(() => import("./pages/Orders/Orders"));
 const OrderDetail = lazy(() => import("./pages/Orders/OrderDetail"));
+const AdminLayout = lazy(() => import("./pages/Admin/AdminLayout"));
+const Dashboard = lazy(() => import("./pages/Admin/Dashboard"));
+const AdminOrders = lazy(() => import("./pages/Admin/AdminOrders"));
+const AdminMenu = lazy(() => import("./pages/Admin/AdminMenu"));
+const Customers = lazy(() => import("./pages/Admin/Customers"));
+const StoreSettings = lazy(() => import("./pages/Admin/StoreSettings"));
 
 const App = () => (
     <>
@@ -18,6 +24,13 @@ const App = () => (
         <Suspense fallback={<RouteFallback />}>
             <Routes>
                 <Route path="/login" element={<Auth />} />
+                <Route path="/admin" element={<RequireStaff><AdminLayout /></RequireStaff>}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="orders" element={<AdminOrders />} />
+                    <Route path="menu" element={<AdminMenu />} />
+                    <Route path="customers" element={<Customers />} />
+                    <Route path="settings" element={<StoreSettings />} />
+                </Route>
                 <Route element={<SiteLayout />}>
                     <Route index element={<Home />} />
                     <Route path="cart" element={<Cart />} />
