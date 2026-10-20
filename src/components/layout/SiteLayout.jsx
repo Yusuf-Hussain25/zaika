@@ -3,6 +3,8 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { ChefHat, LayoutDashboard, LogOut, Moon, Package, ShoppingBag, Sun, UserRound } from "lucide-react";
 import Logo from "../ui/Logo";
 import CustomiseSheet from "../food/CustomiseSheet";
+import TabBar from "./TabBar";
+import { useTransitionClick } from "../../lib/viewTransition";
 import { Avatar } from "../ui";
 import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../context/StoreContext";
@@ -73,6 +75,7 @@ const SiteHeader = () => {
     const { count } = useStore();
     const { pathname, search } = useLocation();
     const [scrolled, setScrolled] = useState(false);
+    const go = useTransitionClick();
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 8);
@@ -84,12 +87,18 @@ const SiteHeader = () => {
     return (
         <header className={`site-header ${scrolled ? "scrolled" : ""}`}>
             <div className="container site-header-row">
-                <Link to="/" aria-label="Zaika home">
+                <Link to="/" aria-label="Zaika home" onClick={go("/")}>
                     <Logo size={32} />
                 </Link>
                 <nav className="site-nav" aria-label="Main">
-                    <NavLink to="/" end>Menu</NavLink>
-                    {user && <NavLink to="/orders">Orders</NavLink>}
+                    <NavLink to="/" end onClick={go("/")}>
+                        Menu
+                    </NavLink>
+                    {user && (
+                        <NavLink to="/orders" onClick={go("/orders")}>
+                            Orders
+                        </NavLink>
+                    )}
                     {isStaff && (
                         <NavLink to="/admin">
                             <ChefHat size={15} /> Kitchen
@@ -97,7 +106,7 @@ const SiteHeader = () => {
                     )}
                 </nav>
                 <div className="site-actions">
-                    <Link to="/cart" className="icon-btn cart-btn" aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}>
+                    <Link to="/cart" className="icon-btn cart-btn" onClick={go("/cart")} aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}>
                         <ShoppingBag size={20} />
                         {count > 0 && <span className="badge-dot" key={count}>{count}</span>}
                     </Link>
@@ -149,9 +158,13 @@ const SiteLayout = () => {
         <div className="site">
             <SiteHeader />
             <main className="site-main">
-                <Outlet />
+                {/* Keyed so each page plays the enter animation where View Transitions aren't supported */}
+                <div className="route-view" key={pathname}>
+                    <Outlet />
+                </div>
             </main>
             <SiteFooter />
+            <TabBar />
             <CustomiseSheet />
         </div>
     );

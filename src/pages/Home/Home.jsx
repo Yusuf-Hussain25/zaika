@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { ArrowRight, Bike, Clock3, Flame, LayoutGrid, Leaf, RefreshCw, Search, ShoppingBag, Store, X } from "lucide-react";
 import FoodCard, { AddControl, FoodCardSkeleton } from "../../components/food/FoodCard";
@@ -9,6 +9,7 @@ import { CATEGORY_OPTIONS } from "../../lib/categories";
 import { formatPrice, plural } from "../../lib/format";
 import { optimizedImage } from "../../lib/upload";
 import { categoryLabel } from "../../../shared/menu";
+import { useSearchFocusRequest } from "../../lib/viewTransition";
 import "./Home.css";
 
 const SORTS = [
@@ -150,6 +151,15 @@ const Home = () => {
     const [openFood, setOpenFood] = useState(null);
     const searchRef = useRef(null);
     const deferredQuery = useDeferredValue(query);
+
+    // The tab bar's Search opens the menu with the search box ready
+    const focusSearch = useCallback(() => {
+        const input = searchRef.current;
+        if (!input) return;
+        input.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        input.focus({ preventScroll: true });
+    }, []);
+    useSearchFocusRequest(focusSearch);
 
     // "/" jumps to search, like most modern web apps
     useEffect(() => {

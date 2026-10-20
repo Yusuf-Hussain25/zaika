@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import SiteLayout from "./components/layout/SiteLayout";
 import { RequireAuth, RequireStaff, RouteFallback } from "./components/layout/Guards";
 import NotFound from "./pages/NotFound";
+import { useFinishViewTransition } from "./lib/viewTransition";
 
 const Home = lazy(() => import("./pages/Home/Home"));
 const Auth = lazy(() => import("./pages/Auth/Auth"));
@@ -19,31 +20,34 @@ const AdminMenu = lazy(() => import("./pages/Admin/AdminMenu"));
 const Customers = lazy(() => import("./pages/Admin/Customers"));
 const StoreSettings = lazy(() => import("./pages/Admin/StoreSettings"));
 
-const App = () => (
-    <>
-        <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 3500 }} />
-        <Suspense fallback={<RouteFallback />}>
-            <Routes>
-                <Route path="/login" element={<Auth />} />
-                <Route path="/admin" element={<RequireStaff><AdminLayout /></RequireStaff>}>
-                    <Route index element={<Dashboard />} />
-                    <Route path="orders" element={<AdminOrders />} />
-                    <Route path="menu" element={<AdminMenu />} />
-                    <Route path="customers" element={<Customers />} />
-                    <Route path="settings" element={<StoreSettings />} />
-                </Route>
-                <Route element={<SiteLayout />}>
-                    <Route index element={<Home />} />
-                    <Route path="cart" element={<Cart />} />
-                    <Route path="checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
-                    <Route path="orders" element={<RequireAuth><Orders /></RequireAuth>} />
-                    <Route path="orders/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
-                    <Route path="account" element={<RequireAuth><Account /></RequireAuth>} />
-                    <Route path="*" element={<NotFound />} />
-                </Route>
-            </Routes>
-        </Suspense>
-    </>
-);
+const App = () => {
+    useFinishViewTransition();
+    return (
+        <>
+            <Toaster position="top-center" richColors closeButton toastOptions={{ duration: 3500 }} />
+            <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                    <Route path="/login" element={<Auth />} />
+                    <Route path="/admin" element={<RequireStaff><AdminLayout /></RequireStaff>}>
+                        <Route index element={<Dashboard />} />
+                        <Route path="orders" element={<AdminOrders />} />
+                        <Route path="menu" element={<AdminMenu />} />
+                        <Route path="customers" element={<Customers />} />
+                        <Route path="settings" element={<StoreSettings />} />
+                    </Route>
+                    <Route element={<SiteLayout />}>
+                        <Route index element={<Home />} />
+                        <Route path="cart" element={<Cart />} />
+                        <Route path="checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
+                        <Route path="orders" element={<RequireAuth><Orders /></RequireAuth>} />
+                        <Route path="orders/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
+                        <Route path="account" element={<RequireAuth><Account /></RequireAuth>} />
+                        <Route path="*" element={<NotFound />} />
+                    </Route>
+                </Routes>
+            </Suspense>
+        </>
+    );
+};
 
 export default App;

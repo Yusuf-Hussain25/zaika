@@ -18,6 +18,7 @@
 
 /* Header: transparent at the top, frosted once you scroll */
 .site-header {
+  view-transition-name: site-header;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -213,11 +214,70 @@
 
 .site-footer-bottom a:hover { color: var(--text); }
 
+/* Bottom tab bar: phones only */
+.tab-bar { display: none; }
+
 @media (max-width: 640px) {
-  .site-header-row { gap: 12px; height: 60px; }
-  .site-nav { gap: 0; }
-  .site-nav a { padding: 0 10px; font-size: 14px; }
-  .site-nav a svg { display: none; }
+  .site-header-row { gap: 12px; height: 60px; justify-content: space-between; }
+  /* The tab bar takes over navigation and the cart on phones */
+  .site-nav,
+  .site-actions .cart-btn { display: none; }
+
+  .site-main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .site-footer { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+  .tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -10px 30px -20px rgba(74, 44, 20, .4);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    view-transition-name: tab-bar;
+  }
+
+  .tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0 4px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 560;
+    color: var(--text-3);
+    -webkit-tap-highlight-color: transparent;
+    transition: color .2s;
+  }
+
+  .tab-icon {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 30px;
+    border-radius: var(--radius-full);
+    transition: background .25s, transform .2s var(--ease-spring);
+  }
+
+  .tab:active .tab-icon { transform: scale(.92); }
+
+  .tab.active { color: var(--accent-strong); }
+  .tab.active .tab-icon { background: var(--accent-soft); }
+
+  .tab .badge-dot {
+    position: absolute;
+    top: -2px;
+    right: 8px;
+    animation: pop-in .3s var(--ease-spring);
+  }
 }
 
 @media (max-width: 420px) {

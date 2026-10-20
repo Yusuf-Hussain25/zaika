@@ -346,6 +346,11 @@
 
 :root[data-theme="dark"] .cart-bar { background: #2a201a; border: 1px solid var(--border-strong); }
 
+/* Sits just above the bottom tab bar on phones */
+@media (max-width: 640px) {
+  .cart-bar { bottom: calc(76px + env(safe-area-inset-bottom)); }
+}
+
 @keyframes cart-bar-in {
   from { transform: translate(-50%, 30px); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
