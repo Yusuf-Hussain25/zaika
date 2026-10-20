@@ -22,6 +22,10 @@ export default [
         },
     },
     {
+        files: ["public/sw.js"],
+        languageOptions: { ecmaVersion: "latest", sourceType: "script", globals: globals.serviceworker },
+    },
+    {
         files: ["server/**/*.js", "shared/**/*.js", "scripts/**/*.{js,mjs}", "api/**/*.js", "*.config.js"],
         languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: globals.node },
         rules: { "no-unused-vars": ["error", { argsIgnorePattern: "^_" }] },
