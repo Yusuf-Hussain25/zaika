@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import BillSummary from "../../components/food/BillSummary";
 import { EmptyState, StatusPill } from "../../components/ui";
 import { AddressBlock, OrderItems, OrderTimeline } from "../../components/orders/OrderParts";
+import DeliveryMap, { riderProgress } from "../../components/orders/DeliveryMap";
 import { arrivalTime, isActive } from "../../lib/orders";
 import { useNow } from "../../lib/useNow";
 import { useStore } from "../../context/StoreContext";
@@ -91,7 +92,9 @@ const OrderDetail = () => {
     }
 
     const [headline, sub] = HEADLINES[order.status];
-    const eta = arrivalTime(order, settings?.etaMinutes);
+    const onTheWay = order.status === "out_for_delivery";
+    // Once the rider has left, the map's arrival time is the promise
+    const eta = onTheWay ? riderProgress(order, settings?.etaMinutes, now).arrival : arrivalTime(order, settings?.etaMinutes);
     const late = active && now > eta.getTime();
 
     return (
@@ -130,6 +133,7 @@ const OrderDetail = () => {
                             </div>
                         </div>
                     )}
+                    {onTheWay && <DeliveryMap order={order} etaMinutes={settings?.etaMinutes} />}
                     <OrderTimeline order={order} />
                     <p className="subtle order-placed-at">Placed {formatDateTime(order.createdAt)}</p>
                     <div className="order-detail-actions">

@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Avatar, Drawer, EmptyState, Modal, StatusPill } from "../../components/ui";
 import { AddressBlock, OrderItems, OrderTimeline } from "../../components/orders/OrderParts";
 import BillSummary from "../../components/food/BillSummary";
+import DeliveryMap from "../../components/orders/DeliveryMap";
+import { useStore } from "../../context/StoreContext";
 import { useAuth } from "../../context/AuthContext";
 import { useAdminData } from "./AdminData";
 import { api } from "../../lib/api";
@@ -96,6 +98,7 @@ const Ticket = ({ order, column, now, onOpen, onAdvance, busy, readOnly, fresh }
 
 const OrderDrawer = ({ order, onClose, onUpdated, readOnly }) => {
     const { update, busy } = useOrderUpdate(onUpdated);
+    const { settings } = useStore();
     const [confirmCancel, setConfirmCancel] = useState(false);
     const next = order ? nextStatus(order.status) : null;
     const canCancel = order && ["placed", "preparing", "out_for_delivery"].includes(order.status);
@@ -131,6 +134,12 @@ const OrderDrawer = ({ order, onClose, onUpdated, readOnly }) => {
                             <StatusPill status={order.status} />
                             <span className="subtle">{formatDateTime(order.createdAt)}</span>
                         </div>
+                        {order.status === "out_for_delivery" && (
+                            <section>
+                                <h3>Live delivery</h3>
+                                <DeliveryMap order={order} etaMinutes={settings?.etaMinutes} compact />
+                            </section>
+                        )}
                         <section>
                             <h3>Customer</h3>
                             <div className="drawer-customer">

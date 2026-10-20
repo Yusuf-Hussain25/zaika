@@ -1,0 +1,175 @@
+/* Illustrated delivery map: theme-coloured streets, no map tiles or API key */
+.dmap {
+  --map-land: color-mix(in srgb, var(--bg) 70%, var(--accent-2) 6%);
+  --map-block: var(--surface-2);
+  --map-park: var(--veg-soft);
+  --map-river: color-mix(in srgb, var(--info) 16%, transparent);
+  --map-street: var(--bg-elev);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+:root[data-theme="dark"] .dmap {
+  --map-land: #1f1813;
+  --map-block: rgba(255, 236, 220, 0.05);
+  --map-street: rgba(255, 236, 220, 0.11);
+}
+
+.dmap-canvas {
+  position: relative;
+  aspect-ratio: 400 / 240;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+.dmap-canvas svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dmap-land { fill: var(--map-land); }
+.dmap-block { fill: var(--map-block); }
+.dmap-park { fill: var(--map-park); }
+
+.dmap-river {
+  fill: none;
+  stroke: var(--map-river);
+  stroke-width: 16;
+  stroke-linecap: round;
+}
+
+.dmap-street {
+  stroke: var(--map-street);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+
+.dmap-route,
+.dmap-route-done {
+  fill: none;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dmap-route {
+  stroke: color-mix(in srgb, var(--accent) 45%, transparent);
+  stroke-dasharray: 2 9;
+}
+
+/* Ridden part of the route; pathLength="1" lets the dash offset be the progress itself */
+.dmap-route-done {
+  stroke: var(--accent);
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 3s linear;
+}
+
+.dmap-pin,
+.dmap-rider {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.dmap-pin {
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  box-shadow: 0 6px 16px -6px rgba(29, 22, 17, .5);
+  border: 2.5px solid var(--bg-elev);
+}
+
+.dmap-pin.is-kitchen { background: #2a201a; }
+.dmap-pin.is-home { background: var(--accent-grad); }
+
+.dmap-pin.is-kitchen { transition: opacity .3s, transform .3s var(--ease-out); }
+
+.dmap-pin.is-kitchen.is-covered {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.5);
+}
+
+.dmap-tag {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, 21px);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-sm);
+  pointer-events: none;
+}
+
+.dmap-tag.is-above { transform: translate(-50%, calc(-100% - 21px)); }
+
+.dmap-rider {
+  width: 38px;
+  height: 38px;
+  z-index: 2;
+  color: var(--accent-strong);
+  background: var(--panel-solid);
+  border: 2.5px solid var(--accent);
+  box-shadow: var(--shadow-accent);
+  transition: left 3s linear, top 3s linear;
+}
+
+.dmap-rider::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: dmap-ping 1.8s var(--ease-out) infinite;
+  pointer-events: none;
+}
+
+.is-still .dmap-rider,
+.is-still .dmap-route-done { transition: none; }
+
+.is-intro .dmap-rider { transition: left 1.3s var(--ease-out), top 1.3s var(--ease-out); }
+.is-intro .dmap-route-done { transition: stroke-dashoffset 1.3s var(--ease-out); }
+
+@keyframes dmap-ping {
+  from { transform: scale(1); opacity: .7; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+
+.dmap-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 14px;
+}
+
+.dmap-foot svg { color: var(--accent); }
+
+.dmap-foot span {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.dmap.is-compact { gap: 10px; }
+.dmap.is-compact .dmap-pin { width: 26px; height: 26px; border-width: 2px; }
+.dmap.is-compact .dmap-rider { width: 30px; height: 30px; border-width: 2px; }
+.dmap.is-compact .dmap-foot { font-size: 13px; }
+
+@media (max-width: 420px) {
+  .dmap-pin { width: 28px; height: 28px; }
+  .dmap-rider { width: 32px; height: 32px; }
+  .dmap-tag { font-size: 10px; transform: translate(-50%, 18px); }
+  .dmap-tag.is-above { transform: translate(-50%, calc(-100% - 18px)); }
+}
