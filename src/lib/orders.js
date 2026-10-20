@@ -1,3 +1,4 @@
+import { Banknote, CreditCard, Smartphone } from "lucide-react";
 import { optionsLabel } from "../../shared/menu";
 
 export const itemsSummary = (items) =>
@@ -7,3 +8,9 @@ export const isActive = (status) => ["awaiting_payment", "placed", "preparing", 
 
 // Delivery promise: order time plus the kitchen's ETA
 export const arrivalTime = (order, etaMinutes = 35) => new Date(new Date(order.createdAt).getTime() + etaMinutes * 60000);
+
+export const PAYMENT_METHODS = {
+    cod: { label: "Cash on delivery", icon: Banknote },
+    card: { label: "Card (Stripe)", icon: CreditCard },
+    razorpay: { label: "Online (Razorpay)", icon: Smartphone },
+};

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { AlertTriangle, ArrowLeft, Banknote, CreditCard, Lock, MapPin, NotebookPen } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Banknote, CreditCard, Lock, MapPin, NotebookPen, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import BillSummary from "../../components/food/BillSummary";
 import { OrderItems } from "../../components/orders/OrderParts";
 import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../context/StoreContext";
 import { api } from "../../lib/api";
-import { formatPrice } from "../../lib/format";
+import { formatPrice, orderCode } from "../../lib/format";
+import { PaymentDismissed, payWithRazorpay } from "../../lib/razorpay";
 import "../Cart/Cart.css";
 import "./Checkout.css";
 
@@ -42,7 +43,9 @@ const Checkout = () => {
         pincode: user.address?.pincode ?? "",
     }));
     const [note, setNote] = useState("");
-    const [method, setMethod] = useState("cod");
+    // Online payment is the default once we know Razorpay is set up
+    const [picked, setMethod] = useState(null);
+    const method = picked ?? (payments.razorpay ? "razorpay" : "cod");
     const [errors, setErrors] = useState({});
     const [placing, setPlacing] = useState(false);
 
@@ -74,7 +77,7 @@ const Checkout = () => {
         }
         setPlacing(true);
         try {
-            const { order, checkoutUrl } = await api("/orders", {
+            const { order, checkoutUrl, razorpay } = await api("/orders", {
                 method: "POST",
                 body: { address: { ...address, landmark: address.landmark || null }, note: note || null, paymentMethod: method },
             });
@@ -82,11 +85,39 @@ const Checkout = () => {
                 window.location.assign(checkoutUrl);
                 return;
             }
-            replaceCart({});
             setUser((u) => ({ ...u, address: order.address }));
+            if (razorpay) return payOnline(order, razorpay);
+            replaceCart({});
             navigate(`/orders/${order.id}`, { replace: true, state: { placed: true } });
         } catch (err) {
             toast.error(err.message);
+            setPlacing(false);
+        }
+    };
+
+    // Razorpay Checkout, then the server checks the signature and asks Razorpay for the payment
+    const payOnline = async (order, razorpay) => {
+        try {
+            const paid = await payWithRazorpay({
+                ...razorpay,
+                description: `Order ${orderCode(order.number)}`,
+                prefill: { name: order.address.name, email: user.email, contact: order.address.phone.replace(/[\s-]/g, "") },
+            });
+            const { order: confirmed, cart } = await api(`/orders/${order.id}/confirm-payment`, {
+                method: "POST",
+                body: { razorpayPaymentId: paid.razorpay_payment_id, razorpaySignature: paid.razorpay_signature },
+            });
+            replaceCart(cart);
+            if (!confirmed.paid) toast.info("We're waiting for Razorpay to confirm your payment. This page will update.");
+            navigate(`/orders/${order.id}`, { replace: true, state: { placed: confirmed.paid } });
+        } catch (err) {
+            // Closed without paying: drop the unpaid order and keep the cart
+            if (err instanceof PaymentDismissed) {
+                api(`/orders/${order.id}/cancel`, { method: "POST" }).catch(() => {});
+                toast.info("Payment cancelled. Your cart is still here.");
+            } else {
+                toast.error(err.message);
+            }
             setPlacing(false);
         }
     };
@@ -149,6 +180,23 @@ const Checkout = () => {
                             <Lock size={19} /> Payment
                         </h2>
                         <div className="pay-options" role="radiogroup" aria-label="Payment method">
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={method === "razorpay"}
+                                className="pay-option"
+                                onClick={() => setMethod("razorpay")}
+                                disabled={!payments.razorpay}
+                                title={payments.razorpay ? undefined : "Online payments are not enabled on this demo"}
+                            >
+                                <span className="pay-icon">
+                                    <Smartphone size={20} />
+                                </span>
+                                <span>
+                                    <strong>UPI, cards &amp; netbanking</strong>
+                                    <span>{payments.razorpay ? "Secure checkout with Razorpay" : "Not available on this demo"}</span>
+                                </span>
+                            </button>
                             <button type="button" role="radio" aria-checked={method === "cod"} className="pay-option" onClick={() => setMethod("cod")}>
                                 <span className="pay-icon">
                                     <Banknote size={20} />
@@ -158,23 +206,17 @@ const Checkout = () => {
                                     <span>Pay {formatPrice(total)} when your food arrives</span>
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="radio"
-                                aria-checked={method === "card"}
-                                className="pay-option"
-                                onClick={() => setMethod("card")}
-                                disabled={!payments.card}
-                                title={payments.card ? undefined : "Card payments are not enabled on this demo"}
-                            >
-                                <span className="pay-icon">
-                                    <CreditCard size={20} />
-                                </span>
-                                <span>
-                                    <strong>Card</strong>
-                                    <span>{payments.card ? "Secure checkout with Stripe" : "Not available on this demo"}</span>
-                                </span>
-                            </button>
+                            {payments.card && (
+                                <button type="button" role="radio" aria-checked={method === "card"} className="pay-option" onClick={() => setMethod("card")}>
+                                    <span className="pay-icon">
+                                        <CreditCard size={20} />
+                                    </span>
+                                    <span>
+                                        <strong>International card</strong>
+                                        <span>Secure checkout with Stripe</span>
+                                    </span>
+                                </button>
+                            )}
                         </div>
                     </section>
                 </div>
@@ -191,7 +233,7 @@ const Checkout = () => {
                     )}
                     <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={placing || loading || blocked}>
                         {placing && <span className="spinner" />}
-                        {method === "card" ? `Pay ${formatPrice(total)}` : `Place order · ${formatPrice(total)}`}
+                        {method === "cod" ? `Place order · ${formatPrice(total)}` : `Pay ${formatPrice(total)}`}
                     </button>
                     {settings && <p className="subtle cart-note">Estimated delivery in about {settings.etaMinutes} minutes</p>}
                 </aside>

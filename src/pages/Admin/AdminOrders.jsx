@@ -1,6 +1,6 @@
-import { useDeferredValue, useEffect, useState } from "react";
+import { createElement, useDeferredValue, useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
-import { ArrowRight, Banknote, Bike, ChefHat, CircleCheck, ClipboardList, CreditCard, Inbox, Phone, Search, StickyNote, XCircle } from "lucide-react";
+import { ArrowRight, Bike, ChefHat, CircleCheck, ClipboardList, Inbox, Phone, Search, StickyNote, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, Drawer, EmptyState, Modal, StatusPill } from "../../components/ui";
 import { AddressBlock, OrderItems, OrderTimeline } from "../../components/orders/OrderParts";
@@ -11,7 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useAdminData } from "./AdminData";
 import { api } from "../../lib/api";
 import { formatDateTime, formatPrice, orderCode, plural, timeAgo } from "../../lib/format";
-import { itemsSummary } from "../../lib/orders";
+import { PAYMENT_METHODS, itemsSummary } from "../../lib/orders";
 import { useNow } from "../../lib/useNow";
 import { ORDER_STATUS, nextStatus } from "../../../shared/menu";
 
@@ -166,9 +166,11 @@ const OrderDrawer = ({ order, onClose, onUpdated, readOnly }) => {
                             <OrderItems items={order.items} />
                             <BillSummary subtotal={order.subtotal} deliveryFee={order.deliveryFee} total={order.total} />
                             <p className={`drawer-pay ${order.paid ? "paid" : ""}`}>
-                                {order.paymentMethod === "card" ? <CreditCard size={16} /> : <Banknote size={16} />}
-                                {order.paymentMethod === "card" ? "Card" : "Cash on delivery"} ·{" "}
-                                {order.paid ? (
+                                {createElement(PAYMENT_METHODS[order.paymentMethod].icon, { size: 16 })}
+                                {PAYMENT_METHODS[order.paymentMethod].label} ·{" "}
+                                {order.status === "cancelled" && order.paid && order.paymentMethod !== "cod" ? (
+                                    "Refunded"
+                                ) : order.paid ? (
                                     <>
                                         <CircleCheck size={15} /> Paid
                                     </>

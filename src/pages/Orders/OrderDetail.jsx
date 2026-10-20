@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { createElement, useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Banknote, CircleCheck, Clock, CreditCard, MapPin, PartyPopper, RotateCcw, SearchX, StickyNote, XCircle } from "lucide-react";
+import { ArrowLeft, CircleCheck, Clock, MapPin, PartyPopper, RotateCcw, SearchX, StickyNote, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import BillSummary from "../../components/food/BillSummary";
 import { EmptyState, StatusPill } from "../../components/ui";
 import { AddressBlock, OrderItems, OrderTimeline } from "../../components/orders/OrderParts";
 import DeliveryMap, { riderProgress } from "../../components/orders/DeliveryMap";
-import { arrivalTime, isActive } from "../../lib/orders";
+import { PAYMENT_METHODS, arrivalTime, isActive } from "../../lib/orders";
 import { useNow } from "../../lib/useNow";
 import { useStore } from "../../context/StoreContext";
 import { api } from "../../lib/api";
@@ -45,7 +45,18 @@ const OrderDetail = () => {
                   setParams({}, { replace: true });
                   return { order };
               })
-            : api(`/orders/${id}`, { signal: ctrl.signal });
+            : api(`/orders/${id}`, { signal: ctrl.signal }).then(({ order }) =>
+                  // An unpaid Razorpay order (tab closed mid-payment): ask the server to check with Razorpay
+                  order.status === "awaiting_payment" && order.paymentMethod === "razorpay"
+                      ? api(`/orders/${id}/confirm-payment`, { method: "POST", signal: ctrl.signal }).then(({ order: checked, cart }) => {
+                            if (checked.paid) {
+                                replaceCart(cart);
+                                toast.success("Payment received. Your order is with the kitchen!");
+                            }
+                            return { order: checked };
+                        })
+                      : { order },
+              );
         first.then(({ order }) => setOrder(order)).catch((err) => err.name !== "AbortError" && setError(err));
         return () => ctrl.abort();
     }, [id, sessionId, replaceCart, setParams]);
@@ -91,7 +102,10 @@ const OrderDetail = () => {
         );
     }
 
-    const [headline, sub] = HEADLINES[order.status];
+    // Paid online, then cancelled: the API refunds before it cancels
+    const refunded = order.status === "cancelled" && order.paid && order.paymentMethod !== "cod";
+    const [headline, defaultSub] = HEADLINES[order.status];
+    const sub = refunded ? "Your payment has been refunded. Banks usually take 5 to 7 days to show it." : defaultSub;
     const onTheWay = order.status === "out_for_delivery";
     // Once the rider has left, the map's arrival time is the promise
     const eta = onTheWay ? riderProgress(order, settings?.etaMinutes, now).arrival : arrivalTime(order, settings?.etaMinutes);
@@ -168,11 +182,13 @@ const OrderDetail = () => {
                         )}
                     </section>
                     <section className="card order-box order-payment">
-                        {order.paymentMethod === "card" ? <CreditCard size={20} /> : <Banknote size={20} />}
+                        {createElement(PAYMENT_METHODS[order.paymentMethod].icon, { size: 20 })}
                         <div>
-                            <strong>{order.paymentMethod === "card" ? "Card" : "Cash on delivery"}</strong>
+                            <strong>{PAYMENT_METHODS[order.paymentMethod].label}</strong>
                             <span>
-                                {order.paid ? (
+                                {refunded ? (
+                                    `Refunded ${formatPrice(order.total)} to your ${order.paymentMethod === "card" ? "card" : "account"}`
+                                ) : order.paid ? (
                                     <>
                                         <CircleCheck size={14} /> Paid {formatPrice(order.total)}
                                     </>
