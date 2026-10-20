@@ -1,11 +1,12 @@
-import { createElement, useEffect, useState } from "react";
-import { Link, useLocation, useParams, useSearchParams } from "react-router";
+import { createElement, useCallback, useEffect, useState } from "react";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { ArrowLeft, CircleCheck, Clock, MapPin, PartyPopper, RotateCcw, SearchX, StickyNote, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import BillSummary from "../../components/food/BillSummary";
 import { EmptyState, StatusPill } from "../../components/ui";
 import { AddressBlock, OrderItems, OrderTimeline } from "../../components/orders/OrderParts";
 import DeliveryMap, { riderProgress } from "../../components/orders/DeliveryMap";
+import PlacedCelebration from "../../components/orders/PlacedCelebration";
 import { PAYMENT_METHODS, arrivalTime, isActive } from "../../lib/orders";
 import { useNow } from "../../lib/useNow";
 import { useStore } from "../../context/StoreContext";
@@ -23,12 +24,24 @@ const HEADLINES = {
     cancelled: ["Order cancelled", "Nothing will be charged for this order."],
 };
 
+const prefersReducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
 const OrderDetail = () => {
     const { id } = useParams();
-    const { state } = useLocation();
+    const { state, pathname } = useLocation();
+    const navigate = useNavigate();
+    // Fresh from checkout: celebrate once (or show a quiet banner for reduced motion), then forget
+    // the flag so a refresh doesn't replay it
+    const [justPlaced] = useState(() => Boolean(state?.placed));
+    const [celebrating, setCelebrating] = useState(() => Boolean(state?.placed) && !prefersReducedMotion());
+    const endCelebration = useCallback(() => setCelebrating(false), []);
+    useEffect(() => {
+        if (state?.placed) navigate(pathname, { replace: true, state: null });
+    }, [state, pathname, navigate]);
     const [params, setParams] = useSearchParams();
     const { settings, replaceCart } = useStore();
-    const [order, setOrder] = useState(null);
+    // Checkout hands over the order it just placed, so tracking shows without a loading state
+    const [order, setOrder] = useState(() => (state?.order?.id === id ? state.order : null));
     const [error, setError] = useState(null);
     const { reorder, cancel, busy } = useOrderActions(setOrder);
     const sessionId = params.get("session_id");
@@ -80,6 +93,8 @@ const OrderDetail = () => {
         return () => clearInterval(timer);
     }, [id, active]);
 
+    const celebration = celebrating && <PlacedCelebration onDone={endCelebration} />;
+
     if (error) {
         return (
             <div className="container page">
@@ -93,6 +108,7 @@ const OrderDetail = () => {
     if (!order) {
         return (
             <div className="container page order-detail" aria-busy="true">
+                {celebration}
                 <div className="skeleton" style={{ height: 34, width: 260, marginBottom: 24 }} />
                 <div className="order-detail-grid">
                     <div className="skeleton" style={{ height: 380, borderRadius: 22 }} />
@@ -117,8 +133,9 @@ const OrderDetail = () => {
                 <ArrowLeft size={16} /> All orders
             </Link>
 
-            {state?.placed && (
-                <div className="order-placed fade-up">
+            {celebration}
+            {justPlaced && !celebrating && prefersReducedMotion() && (
+                <div className="order-placed">
                     <PartyPopper size={22} />
                     <div>
                         <strong>Order placed!</strong>

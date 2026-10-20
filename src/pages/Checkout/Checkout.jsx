@@ -88,7 +88,7 @@ const Checkout = () => {
             setUser((u) => ({ ...u, address: order.address }));
             if (razorpay) return payOnline(order, razorpay);
             replaceCart({});
-            navigate(`/orders/${order.id}`, { replace: true, state: { placed: true } });
+            navigate(`/orders/${order.id}`, { replace: true, state: { placed: true, order } });
         } catch (err) {
             toast.error(err.message);
             setPlacing(false);
@@ -109,7 +109,7 @@ const Checkout = () => {
             });
             replaceCart(cart);
             if (!confirmed.paid) toast.info("We're waiting for Razorpay to confirm your payment. This page will update.");
-            navigate(`/orders/${order.id}`, { replace: true, state: { placed: confirmed.paid } });
+            navigate(`/orders/${order.id}`, { replace: true, state: { placed: confirmed.paid, order: confirmed } });
         } catch (err) {
             // Closed without paying: drop the unpaid order and keep the cart
             if (err instanceof PaymentDismissed) {

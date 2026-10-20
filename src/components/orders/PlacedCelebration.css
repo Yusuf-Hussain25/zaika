@@ -1,0 +1,115 @@
+/* 1.5s total: fade in, disc pops, ring and tick draw, confetti bursts, everything fades out */
+.placed-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  animation: placed-in .2s ease-out both, placed-out .35s ease-in 1.15s forwards;
+  cursor: pointer;
+}
+
+.placed-fx-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.placed-fx-disc {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: var(--accent-grad);
+  box-shadow: 0 24px 60px -16px rgba(240, 89, 42, .65);
+  animation: placed-pop .5s var(--ease-spring) .05s both;
+}
+
+.placed-fx-disc svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.placed-fx-ring,
+.placed-fx-tick {
+  fill: none;
+  stroke: #fff;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.placed-fx-ring {
+  stroke-width: 3;
+  opacity: .45;
+  animation: placed-draw .45s var(--ease-out) .15s forwards;
+}
+
+.placed-fx-tick {
+  stroke-width: 9;
+  animation: placed-draw .32s var(--ease-out) .42s forwards;
+}
+
+.placed-fx-stage strong {
+  font-size: clamp(26px, 6vw, 34px);
+  letter-spacing: -.03em;
+  animation: placed-rise .4s var(--ease-out) .5s both;
+}
+
+.placed-fx-sub {
+  font-size: 15px;
+  color: var(--text-2);
+  animation: placed-rise .4s var(--ease-out) .6s both;
+}
+
+.placed-fx-confetti {
+  position: absolute;
+  left: 50%;
+  top: 64px;
+  pointer-events: none;
+}
+
+.placed-fx-confetti i {
+  position: absolute;
+  width: var(--w);
+  height: calc(var(--w) * .45);
+  border-radius: 2px;
+  background: var(--c);
+  opacity: 0;
+  animation: placed-burst .75s cubic-bezier(.15, .7, .3, 1) both;
+}
+
+.placed-fx-confetti i.round {
+  height: var(--w);
+  border-radius: 50%;
+}
+
+
+@keyframes placed-in { from { opacity: 0; } }
+@keyframes placed-out { to { opacity: 0; visibility: hidden; } }
+
+@keyframes placed-pop {
+  from { transform: scale(.3); opacity: 0; }
+}
+
+@keyframes placed-draw { to { stroke-dashoffset: 0; } }
+
+@keyframes placed-rise {
+  from { transform: translateY(10px); opacity: 0; }
+}
+
+@keyframes placed-burst {
+  0% { transform: translate(-50%, -50%) scale(.4); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y) + 40px)) rotate(var(--r)) scale(1); opacity: 0; }
+}
