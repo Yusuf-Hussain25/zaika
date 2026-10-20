@@ -54,6 +54,14 @@
 }
 
 .cart-line-info .muted { font-size: 13.5px; }
+
+.cart-line-opts {
+  font-size: 13px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .cart-line-info em { font-style: normal; color: var(--danger); }
 
 .cart-line-actions {

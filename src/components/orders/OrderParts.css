@@ -118,6 +118,13 @@
   line-height: 1.35;
 }
 
+.order-items-opts {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
 /* Inline so a long name wraps under the mark instead of pushing it onto its own line */
 .order-items-name .veg-mark {
   display: inline-grid;

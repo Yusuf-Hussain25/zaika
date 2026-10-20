@@ -3,7 +3,7 @@ import { Bike, Check, ChefHat, PackageCheck, Receipt, X } from "lucide-react";
 import { VegMark } from "../ui";
 import { formatPrice, formatTime } from "../../lib/format";
 import { optimizedImage } from "../../lib/upload";
-import { ORDER_FLOW, ORDER_STATUS } from "../../../shared/menu";
+import { ORDER_FLOW, ORDER_STATUS, optionsLabel } from "../../../shared/menu";
 import "./OrderParts.css";
 
 const STEP_ICONS = { placed: Receipt, preparing: ChefHat, out_for_delivery: Bike, delivered: PackageCheck };
@@ -42,6 +42,7 @@ export const OrderItems = ({ items }) => (
                 <span className="order-items-name">
                     <VegMark veg={item.isVeg} size={12} /> {item.name}
                     <span className="subtle num"> × {item.quantity}</span>
+                    {item.options && <small className="order-items-opts">{optionsLabel(item.options)}</small>}
                 </span>
                 <span className="num">{formatPrice(item.price * item.quantity)}</span>
             </li>

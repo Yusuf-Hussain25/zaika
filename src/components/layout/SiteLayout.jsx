@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { ChefHat, LayoutDashboard, LogOut, Moon, Package, ShoppingBag, Sun, UserRound } from "lucide-react";
 import Logo from "../ui/Logo";
+import CustomiseSheet from "../food/CustomiseSheet";
 import { Avatar } from "../ui";
 import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../context/StoreContext";
@@ -151,6 +152,7 @@ const SiteLayout = () => {
                 <Outlet />
             </main>
             <SiteFooter />
+            <CustomiseSheet />
         </div>
     );
 };

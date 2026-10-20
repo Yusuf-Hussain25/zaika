@@ -15,6 +15,7 @@ export const toFood = (f) => ({
     category: f.category,
     isVeg: f.is_veg,
     isAvailable: f.is_available,
+    options: f.options ?? null,
     orderCount: Number(f.order_count ?? 0),
     bestseller: Boolean(f.bestseller),
     createdAt: f.created_at,
@@ -33,14 +34,34 @@ const cleanImageUrl = (value) => {
     return url;
 };
 
+// { spice, halfPrice, addons } from the dish editor; null when nothing is offered
+const cleanOptions = (value, price) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== "object" || Array.isArray(value)) throw badRequest("Dish options are not valid.");
+    const spice = Boolean(value.spice);
+    const halfPrice = value.halfPrice === null || value.halfPrice === undefined || value.halfPrice === "" ? null : cleanInt(value.halfPrice, { field: "Half portion price", min: 1, max: 100000 });
+    if (halfPrice !== null && halfPrice >= price) throw badRequest("A half portion should cost less than the full dish.");
+    const list = Array.isArray(value.addons) ? value.addons : [];
+    if (list.length > 10) throw badRequest("A dish can have up to 10 add-ons.");
+    const addons = list.map((a) => {
+        const label = cleanText(a?.label, { field: "Add-on name", min: 2, max: 40 });
+        return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "addon", label, price: cleanInt(a?.price, { field: `Price of ${label}`, min: 0, max: 5000 }) };
+    });
+    if (new Set(addons.map((a) => a.id)).size !== addons.length) throw badRequest("Each add-on needs a different name.");
+    if (!spice && halfPrice === null && !addons.length) return null;
+    return { spice, halfPrice, addons };
+};
+
 const cleanFood = (body, current = {}) => {
     const pick = (key, fallback) => (body[key] !== undefined ? body[key] : fallback);
     const category = pick("category", current.category);
     if (!CATEGORY_IDS.includes(category)) throw badRequest("Please choose a valid category.");
+    const price = cleanInt(pick("price", current.price), { field: "Price", min: 1, max: 100000 });
     return {
         name: cleanText(pick("name", current.name), { field: "Name", min: 2, max: 80 }),
         description: cleanText(pick("description", current.description), { field: "Description", min: 0, max: 300 }) ?? "",
-        price: cleanInt(pick("price", current.price), { field: "Price", min: 1, max: 100000 }),
+        price,
+        options: cleanOptions(pick("options", current.options), price),
         imageUrl: cleanImageUrl(pick("imageUrl", current.image_url)),
         category,
         isVeg: Boolean(pick("isVeg", current.is_veg ?? true)),
@@ -68,8 +89,8 @@ router.get("/", async (_req, res) => {
 router.post("/", requireAdmin, async (req, res) => {
     const f = cleanFood(req.body);
     const [row] = await sql`
-        insert into foods (name, description, price, image_url, category, is_veg, is_available)
-        values (${f.name}, ${f.description}, ${f.price}, ${f.imageUrl}, ${f.category}, ${f.isVeg}, ${f.isAvailable})
+        insert into foods (name, description, price, image_url, category, is_veg, is_available, options)
+        values (${f.name}, ${f.description}, ${f.price}, ${f.imageUrl}, ${f.category}, ${f.isVeg}, ${f.isAvailable}, ${f.options ? JSON.stringify(f.options) : null}::jsonb)
         returning *`;
     res.status(201).json({ food: toFood(row) });
 });
@@ -81,7 +102,8 @@ router.patch("/:id", requireAdmin, async (req, res) => {
     const f = cleanFood(req.body, current);
     const [row] = await sql`
         update foods set name = ${f.name}, description = ${f.description}, price = ${f.price},
-            image_url = ${f.imageUrl}, category = ${f.category}, is_veg = ${f.isVeg}, is_available = ${f.isAvailable}
+            image_url = ${f.imageUrl}, category = ${f.category}, is_veg = ${f.isVeg}, is_available = ${f.isAvailable},
+            options = ${f.options ? JSON.stringify(f.options) : null}::jsonb
         where id = ${id} returning *`;
     res.json({ food: toFood(row) });
 });

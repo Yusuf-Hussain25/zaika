@@ -111,9 +111,19 @@
 }
 
 .food-card-price {
+  display: flex;
+  flex-direction: column;
   font-size: 16.5px;
   font-weight: 680;
   letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+.food-card-price small {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-3);
 }
 
 .add-btn { min-width: 84px; }

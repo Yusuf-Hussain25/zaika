@@ -926,6 +926,43 @@
   cursor: pointer;
 }
 
+/* Customer options: spice switch, half price, add-on rows */
+.dish-options {
+  gap: 10px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.dish-options legend { padding: 0 6px; margin-left: -6px; }
+.dish-options .switch-row { height: 36px; }
+
+.dish-half {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 540;
+}
+
+.dish-addons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.dish-addon-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 36px;
+  gap: 8px;
+  align-items: center;
+}
+
+.dish-addon-add { align-self: flex-start; }
+
 .dish-preview {
   display: flex;
   flex-direction: column;
@@ -1061,6 +1098,7 @@
   .admin-search { min-width: 0; max-width: none; width: 100%; flex-basis: 100%; }
   .admin-toolbar .segmented { width: 100%; }
   .dish-form-row { grid-template-columns: 1fr; }
+  .dish-half { grid-template-columns: 1fr; gap: 6px; }
   .settings-open { flex-wrap: wrap; }
   .panel { padding: 16px; }
 }

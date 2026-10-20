@@ -5,7 +5,8 @@ import { HttpError, badRequest, cleanAddress, cleanId, cleanText, notFound } fro
 import { isStaff, requireAuth } from "../lib/auth.js";
 import { CURRENCY, deliveryFeeFor, getStripe, readSettings } from "../lib/store.js";
 import { fetchOrder, fetchOrders } from "../lib/orders.js";
-import { readCart } from "./cart.js";
+import { addLines, readCart } from "./cart.js";
+import { cleanChoice, optionsLabel, snapshotChoice, unitPrice } from "../../shared/menu.js";
 import { withAutopilot } from "../lib/autopilot.js";
 
 const router = Router();
@@ -39,14 +40,20 @@ router.post("/", async (req, res) => {
     const stripe = method === "card" ? getStripe() : null;
     if (method === "card" && !stripe) throw badRequest("Card payments are not available. Please choose cash on delivery.");
 
-    const lines = await sql`
-        select f.*, c.quantity from cart_items c join foods f on f.id = c.food_id
-        where c.user_id = ${req.user.id} order by f.name`;
+    const rows = await sql`
+        select f.*, c.quantity, c.choice from cart_items c join foods f on f.id = c.food_id
+        where c.user_id = ${req.user.id} order by f.name, c.line_id`;
+    // Each line's price is the dish (or half portion) plus its add-ons, from today's menu
+    const lines = rows.map((l) => {
+        const choice = cleanChoice(l, l.choice);
+        const options = snapshotChoice(l, choice);
+        return { ...l, unit: unitPrice(l, choice), options, label: optionsLabel(options) };
+    });
     if (!lines.length) throw badRequest("Your cart is empty.");
     const soldOut = lines.filter((l) => !l.is_available).map((l) => l.name);
     if (soldOut.length) throw badRequest(`${soldOut.join(", ")} ${soldOut.length > 1 ? "are" : "is"} sold out. Remove ${soldOut.length > 1 ? "them" : "it"} to continue.`);
 
-    const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+    const subtotal = lines.reduce((sum, l) => sum + l.unit * l.quantity, 0);
     const deliveryFee = deliveryFeeFor(subtotal, settings);
     const total = subtotal + deliveryFee;
     const id = randomUUID();
@@ -55,10 +62,12 @@ router.post("/", async (req, res) => {
     await transaction((tx) => [
         tx`insert into orders (id, user_id, status, payment_method, subtotal, delivery_fee, total, address, note)
            values (${id}, ${req.user.id}, ${status}, ${method}, ${subtotal}, ${deliveryFee}, ${total}, ${JSON.stringify(address)}::jsonb, ${note})`,
-        tx`insert into order_items (order_id, food_id, name, price, quantity, image_url, is_veg)
-           select ${id}, * from unnest(
-             ${lines.map((l) => l.id)}::uuid[], ${lines.map((l) => l.name)}::text[], ${lines.map((l) => l.price)}::int[],
-             ${lines.map((l) => l.quantity)}::int[], ${lines.map((l) => l.image_url)}::text[], ${lines.map((l) => l.is_veg)}::boolean[])`,
+        tx`insert into order_items (order_id, food_id, name, price, quantity, image_url, is_veg, options)
+           select ${id}, g.food_id, g.name, g.price, g.quantity, g.image_url, g.is_veg, g.options::jsonb from unnest(
+             ${lines.map((l) => l.id)}::uuid[], ${lines.map((l) => l.name)}::text[], ${lines.map((l) => l.unit)}::int[],
+             ${lines.map((l) => l.quantity)}::int[], ${lines.map((l) => l.image_url)}::text[], ${lines.map((l) => l.is_veg)}::boolean[],
+             ${lines.map((l) => (l.options ? JSON.stringify(l.options) : null))}::text[])
+             as g(food_id, name, price, quantity, image_url, is_veg, options)`,
         tx`insert into order_events (order_id, status) values (${id}, ${status})`,
         // Card orders keep the cart until payment succeeds, so a cancelled checkout loses nothing
         ...(method === "cod" ? [tx`delete from cart_items where user_id = ${req.user.id}`] : []),
@@ -76,7 +85,7 @@ router.post("/", async (req, res) => {
                 line_items: [
                     ...lines.map((l) => ({
                         quantity: l.quantity,
-                        price_data: { currency: CURRENCY, unit_amount: l.price * 100, product_data: { name: l.name } },
+                        price_data: { currency: CURRENCY, unit_amount: l.unit * 100, product_data: { name: l.label ? `${l.name} (${l.label})` : l.name } },
                     })),
                     ...(deliveryFee
                         ? [{ quantity: 1, price_data: { currency: CURRENCY, unit_amount: deliveryFee * 100, product_data: { name: "Delivery fee" } } }]
@@ -137,21 +146,21 @@ router.post("/:id/cancel", async (req, res) => {
     res.json({ order: await fetchOrder(order.id, req.user) });
 });
 
-// Puts a past order's dishes back in the cart (skipping anything sold out or removed)
+// Puts a past order's dishes back in the cart with the same options (skipping anything sold out
+// or removed, and any add-on the dish no longer offers)
 router.post("/:id/reorder", async (req, res) => {
     const order = await ownOrder(req);
-    const items = order.items.filter((i) => i.foodId);
-    if (items.length) {
-        await sql`
-            insert into cart_items (user_id, food_id, quantity)
-            select ${req.user.id}, f.id, g.qty
-            from unnest(${items.map((i) => i.foodId)}::uuid[], ${items.map((i) => i.quantity)}::int[]) as g(id, qty)
-            join foods f on f.id = g.id and f.is_available
-            on conflict (user_id, food_id) do update set quantity = least(cart_items.quantity + excluded.quantity, 50)`;
-    }
-    const cart = await readCart(req.user.id);
-    const added = items.filter((i) => cart[i.foodId]).length;
-    res.json({ cart, added, skipped: order.items.length - added });
+    const added = await addLines(
+        req.user.id,
+        order.items
+            .filter((i) => i.foodId)
+            .map((i) => ({
+                foodId: i.foodId,
+                quantity: i.quantity,
+                choice: i.options && { portion: i.options.portion, spice: i.options.spice, addons: i.options.addons.map((a) => a.id) },
+            })),
+    );
+    res.json({ cart: await readCart(req.user.id), added, skipped: order.items.length - added });
 });
 
 export default router;

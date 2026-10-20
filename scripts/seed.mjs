@@ -6,6 +6,7 @@
 // timestamps. Safe to re-run: existing accounts and dishes are reused, orders are only topped up.
 import dotenv from "dotenv";
 import { DISHES } from "./seed-data.mjs";
+import { SPICE_LEVELS, cleanChoice, hasOptions, lineKey } from "../shared/menu.js";
 
 dotenv.config({ quiet: true });
 
@@ -126,15 +127,23 @@ if (withEmail) {
 console.log("• menu");
 const existing = new Map((await call("/foods")).foods.map((f) => [f.name.toLowerCase(), f]));
 let added = 0;
+let updated = 0;
 for (const d of DISHES) {
-    if (existing.has(d.name.toLowerCase())) continue;
+    const current = existing.get(d.name.toLowerCase());
+    // Dishes seeded before options existed get them added
+    if (current && d.options && !current.options) {
+        const { food } = await call(`/foods/${current.id}`, { token: admin.token, method: "PATCH", body: { options: d.options } });
+        existing.set(food.name.toLowerCase(), food);
+        updated++;
+    }
+    if (current) continue;
     const { food } = await call("/foods", { token: admin.token, method: "POST", body: { ...d, imageUrl: `/dishes/${d.image}.webp` } });
     existing.set(food.name.toLowerCase(), food);
     added++;
 }
 const menu = [...existing.values()];
 const available = menu.filter((f) => f.isAvailable);
-console.log(`  ${added} dishes added, ${menu.length} on the menu`);
+console.log(`  ${added} dishes added, ${updated} given options, ${menu.length} on the menu`);
 
 // ------------------------------------------------------------------ orders
 const settings = (await call("/settings")).settings;
@@ -153,10 +162,26 @@ const orderTime = (daysAgo) => {
     return new Date(t);
 };
 
+// What a real customer might pick: often the default, sometimes half, hotter or with an add-on
+const randomChoice = (food) => {
+    if (!hasOptions(food)) return cleanChoice(food, {});
+    const o = food.options;
+    return cleanChoice(food, {
+        portion: o.halfPrice && rand() < 0.3 ? "half" : "full",
+        spice: rand() < 0.5 ? "medium" : pick(SPICE_LEVELS).id,
+        addons: o.addons.filter(() => rand() < 0.25).map((a) => a.id),
+    });
+};
+
 const placeOrder = async (person, daysAgo) => {
     const lines = Array.from({ length: between(1, 4) }, () => pick(available));
     for (const food of new Set(lines)) {
-        await call(`/cart/${food.id}`, { token: person.token, method: "PUT", body: { quantity: lines.filter((l) => l === food).length + (rand() < 0.2 ? 1 : 0) } });
+        const choice = randomChoice(food);
+        await call(`/cart/${encodeURIComponent(lineKey(food.id, choice))}`, {
+            token: person.token,
+            method: "PUT",
+            body: { foodId: food.id, choice, quantity: lines.filter((l) => l === food).length + (rand() < 0.2 ? 1 : 0) },
+        });
     }
     const { order } = await call("/orders", { token: person.token, method: "POST", body: { address: person.address, paymentMethod: "cod" } });
     return { order, at: orderTime(daysAgo) };

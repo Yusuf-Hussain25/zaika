@@ -1,4 +1,7 @@
-export const itemsSummary = (items) => items.map((i) => `${i.name} × ${i.quantity}`).join(", ");
+import { optionsLabel } from "../../shared/menu";
+
+export const itemsSummary = (items) =>
+    items.map((i) => `${i.name}${i.options ? ` (${optionsLabel(i.options)})` : ""} × ${i.quantity}`).join(", ");
 
 export const isActive = (status) => ["awaiting_payment", "placed", "preparing", "out_for_delivery"].includes(status);
 

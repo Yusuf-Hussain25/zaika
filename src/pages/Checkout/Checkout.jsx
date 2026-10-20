@@ -181,7 +181,7 @@ const Checkout = () => {
 
                 <aside className="card cart-summary">
                     <h2>Your order</h2>
-                    {loading ? <div className="skeleton" style={{ height: 120 }} /> : <OrderItems items={lines.map(({ food, quantity }) => ({ ...food, quantity }))} />}
+                    {loading ? <div className="skeleton" style={{ height: 120 }} /> : <OrderItems items={lines.map((l) => ({ ...l.food, price: l.unitPrice, quantity: l.quantity, options: l.options }))} />}
                     <BillSummary subtotal={subtotal} deliveryFee={deliveryFee} total={total} freeDeliveryOver={settings?.freeDeliveryOver} toFreeDelivery={toFreeDelivery} />
                     {blocked && (
                         <p className="cart-warning">

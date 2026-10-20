@@ -37,6 +37,7 @@ const toOrder = (o, items, events, viewer) => {
             quantity: i.quantity,
             imageUrl: i.image_url,
             isVeg: i.is_veg,
+            options: i.options ?? null,
         })),
         events: events.map((e) => ({ status: e.status, at: e.created_at })),
     };

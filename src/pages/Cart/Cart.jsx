@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useStore } from "../../context/StoreContext";
 import { formatPrice, plural } from "../../lib/format";
 import { optimizedImage } from "../../lib/upload";
+import { optionsLabel } from "../../../shared/menu";
 import "./Cart.css";
 
 const Cart = () => {
@@ -57,24 +58,25 @@ const Cart = () => {
                             </div>
                         ))}
                     {!loading &&
-                        lines.map(({ food, quantity }) => (
-                            <div key={food.id} className={`cart-line ${food.isAvailable ? "" : "is-sold-out"}`}>
+                        lines.map(({ id, food, quantity, options, unitPrice }) => (
+                            <div key={id} className={`cart-line ${food.isAvailable ? "" : "is-sold-out"}`}>
                                 <img src={optimizedImage(food.imageUrl, 160)} alt="" />
                                 <div className="cart-line-info">
                                     <strong>
                                         <VegMark veg={food.isVeg} size={13} /> {food.name}
                                     </strong>
+                                    {options && <span className="cart-line-opts">{optionsLabel(options)}</span>}
                                     <span className="muted num">
-                                        {formatPrice(food.price)} each
+                                        {formatPrice(unitPrice)} each
                                         {!food.isAvailable && <em> · Sold out, please remove</em>}
                                     </span>
                                 </div>
                                 <div className="cart-line-actions">
                                     {food.isAvailable ? (
-                                        <QtyStepper value={quantity} onAdd={() => add(food.id)} onRemove={() => remove(food.id)} name={food.name} size="sm" />
+                                        <QtyStepper value={quantity} onAdd={() => add(id)} onRemove={() => remove(id)} name={food.name} size="sm" />
                                     ) : null}
-                                    <span className="cart-line-total num">{formatPrice(food.price * quantity)}</span>
-                                    <button type="button" className="icon-btn sm" onClick={() => setQuantity(food.id, 0)} aria-label={`Remove ${food.name} from cart`}>
+                                    <span className="cart-line-total num">{formatPrice(unitPrice * quantity)}</span>
+                                    <button type="button" className="icon-btn sm" onClick={() => setQuantity(id, 0)} aria-label={`Remove ${food.name} from cart`}>
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
