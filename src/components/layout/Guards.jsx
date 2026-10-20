@@ -21,7 +21,7 @@ export const RequireStaff = ({ children }) => {
     const { user, ready, isStaff } = useAuth();
     const location = useLocation();
     if (!ready) return <Waiting />;
-    if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+    if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
     if (!isStaff) return <Navigate to="/" replace />;
     return children;
 };

@@ -14,7 +14,8 @@ export const AuthProvider = ({ children }) => {
         api("/auth/me", { signal: ctrl.signal })
             .then(({ user }) => setUser(user))
             .catch(() => {})
-            .finally(() => setReady(true));
+            // An aborted check (StrictMode remount) must not mark auth ready without a user
+            .finally(() => !ctrl.signal.aborted && setReady(true));
         return () => ctrl.abort();
     }, []);
 
