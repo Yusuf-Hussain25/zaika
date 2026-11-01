@@ -6,6 +6,7 @@ import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
 import settingsRoutes from "./routes/settings.js";
 import { sql } from "./db.js";
+import { dailyCatchUp } from "./lib/autopilot.js";
 
 // Express 5 forwards rejected promises from async handlers to the error handler below.
 const app = express();
@@ -19,6 +20,12 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, name: "zaika-api" }))
 app.get("/api/warm", async (_req, res) => {
     await sql`select 1`;
     res.set("Cache-Control", "no-store").json({ ok: true });
+});
+// Called once a day by Vercel Cron (vercel.json), which sends CRON_SECRET as a bearer token
+app.get("/api/cron/daily", async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ ok: false });
+    res.set("Cache-Control", "no-store").json(await dailyCatchUp());
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/foods", foodRoutes);

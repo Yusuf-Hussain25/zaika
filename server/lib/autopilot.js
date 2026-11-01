@@ -90,6 +90,34 @@ export const autopilot = async () => {
     return running;
 };
 
+// Daily cron (see /api/cron/daily): finish yesterday's demo orders (each order needs up to three
+// steps) and place a fresh one, so recent orders and bestseller badges never run dry even
+// when nobody visits for a while.
+export const dailyCatchUp = async () => {
+    if (process.env.DEMO_AUTOPILOT !== "true") return { skipped: true };
+    // Demo orders nobody watched: walk each through its remaining steps, logging every one
+    const stale = await sql`
+        select o.id, o.status from orders o join users u on u.id = o.user_id
+        where u.email like ${demoEmail}
+          and o.status in ('placed', 'preparing', 'out_for_delivery')
+          and o.updated_at < now() - interval '30 minutes'
+        limit 50`;
+    for (const o of stale) {
+        for (let status = o.status; NEXT[status]; status = NEXT[status]) {
+            const next = NEXT[status];
+            const [moved] = await sql`
+                update orders set status = ${next}, updated_at = now(),
+                    paid = paid or (${next} = 'delivered' and payment_method = 'cod')
+                where id = ${o.id} and status = ${status}
+                returning id`;
+            if (!moved) break;
+            await sql`insert into order_events (order_id, status) values (${o.id}, ${next})`;
+        }
+    }
+    await simulateOrder();
+    return { ok: true, finished: stale.length };
+};
+
 // Express middleware: catch the demo up before reading orders
 export const withAutopilot = async (_req, _res, next) => {
     await autopilot();
