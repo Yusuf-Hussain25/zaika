@@ -2,6 +2,8 @@
 
 **Zaika** (ज़ायका, "taste") is a full-stack Indian food delivery app: a light, modern storefront with live order tracking, and a restaurant admin panel with a real-time kitchen board, all running on one Express API and Neon Postgres.
 
+**Live demo: [zaika.yusufhussain.in](https://zaika.yusufhussain.in)**. On the login page, use the demo customer or the read-only demo admin.
+
 ![Zaika storefront](docs/screenshots/storefront.webp)
 
 | Kitchen dashboard | Live kitchen board |
@@ -213,10 +215,19 @@ npm run seed -- --with you@example.com
 
 ## Deployment (Vercel)
 
+The live demo runs on **Vercel** (free Hobby plan) with a **Neon** free database. The repo is connected, so every push to `main` deploys automatically.
+
 1. Push the repo to GitHub and **Import** it in Vercel (framework preset: Vite).
-2. Add the environment variables from `.env` in **Settings → Environment Variables** (`DATABASE_URL`, `JWT_SECRET`, the `VITE_` values, and optionally `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `STRIPE_SECRET_KEY`, `APP_URL`, `DEMO_AUTOPILOT`). If your Neon database was created from Vercel's Storage tab, connecting it to the project adds `DATABASE_URL` for you.
-3. Deploy. `vercel.json` sends `/api/*` to the Express function in `api/index.js` and every other path to the React app.
+2. Add the environment variables from `.env` in **Settings → Environment Variables** (`DATABASE_URL`, `JWT_SECRET`, the `VITE_` values, and optionally `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `STRIPE_SECRET_KEY`, `APP_URL`, `DEMO_AUTOPILOT`, `CRON_SECRET`). If your Neon database was created from Vercel's Storage tab, connecting it to the project adds `DATABASE_URL` for you.
+3. Deploy. `vercel.json` sends `/api/*` to the Express function in `api/index.js`, every other path to the React app, and schedules the daily cron.
 4. Run `npm run migrate` and `npm run seed` locally against the same `DATABASE_URL` (once).
+5. Custom subdomain: `vercel domains add <sub>.<your-domain> <project>`, then add an **A** record `<sub>` → `76.76.21.21` at your DNS provider. Vercel issues the HTTPS certificate.
+
+**Staying fast on free tiers.** Vercel doesn't sleep, but Neon's free database pauses after five idle minutes:
+
+- The menu and store settings are cached on Vercel's CDN for signed-out visitors (refreshed every minute, served stale while refreshing), so the storefront opens instantly even while the database wakes. Signed-in requests always get fresh data.
+- The site quietly calls `/api/warm` on load, so the database is awake before the visitor logs in or checks out.
+- A daily Vercel cron (`/api/cron/daily`, 06:00 IST) finishes demo orders nobody watched and places a fresh demo order, so recent orders and bestseller badges never run dry.
 
 ## Credits
 
