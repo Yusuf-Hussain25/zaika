@@ -5,6 +5,7 @@ import cartRoutes from "./routes/cart.js";
 import orderRoutes from "./routes/orders.js";
 import adminRoutes from "./routes/admin.js";
 import settingsRoutes from "./routes/settings.js";
+import { sql } from "./db.js";
 
 // Express 5 forwards rejected promises from async handlers to the error handler below.
 const app = express();
@@ -13,6 +14,12 @@ app.set("trust proxy", true);
 app.use(express.json({ limit: "100kb" }));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, name: "zaika-api" }));
+// Wakes the database (Neon pauses after 5 idle minutes). The site calls it quietly on load,
+// so the database is awake by the time a visitor logs in or checks out.
+app.get("/api/warm", async (_req, res) => {
+    await sql`select 1`;
+    res.set("Cache-Control", "no-store").json({ ok: true });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/foods", foodRoutes);
 app.use("/api/cart", cartRoutes);

@@ -53,3 +53,13 @@ export const cleanAddress = (input = {}) => {
     if (!/^\d{6}$/.test(address.pincode)) throw badRequest("PIN code must be 6 digits.");
     return address;
 };
+
+// Public, same-for-everyone responses (menu, store settings). For signed-out visitors the
+// Vercel CDN keeps a copy for a minute and keeps serving it while it refreshes in the
+// background, so the storefront opens instantly even while the database is waking up.
+// Signed-in requests (they carry a token) always get fresh data, so admins see edits at once.
+export const publicCache = (req, res) => {
+    res.vary("Authorization");
+    if (req.headers.authorization) res.set("Cache-Control", "private, no-store");
+    else res.set("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=86400");
+};

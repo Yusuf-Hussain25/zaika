@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { sql } from "../db.js";
-import { cleanInt } from "../lib/http.js";
+import { cleanInt, publicCache } from "../lib/http.js";
 import { requireAdmin } from "../lib/auth.js";
 import { getStripe, readSettings, toSettings } from "../lib/store.js";
 import { razorpayKeys } from "../lib/razorpay.js";
@@ -8,8 +8,10 @@ import { razorpayKeys } from "../lib/razorpay.js";
 const router = Router();
 
 // Public: the storefront needs these to show fees, ETA and the open/closed state
-router.get("/", async (_req, res) => {
-    res.json({ settings: await readSettings(), payments: { card: Boolean(getStripe()), razorpay: Boolean(razorpayKeys()) } });
+router.get("/", async (req, res) => {
+    const settings = await readSettings();
+    publicCache(req, res);
+    res.json({ settings, payments: { card: Boolean(getStripe()), razorpay: Boolean(razorpayKeys()) } });
 });
 
 router.patch("/", requireAdmin, async (req, res) => {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { sql } from "../db.js";
-import { badRequest, cleanId, cleanInt, cleanText, notFound } from "../lib/http.js";
+import { badRequest, cleanId, cleanInt, cleanText, notFound, publicCache } from "../lib/http.js";
 import { requireAdmin } from "../lib/auth.js";
 import { CATEGORY_IDS } from "../../shared/menu.js";
 
@@ -70,7 +70,7 @@ const cleanFood = (body, current = {}) => {
 };
 
 // Menu with real popularity: units sold in the last 30 days, top 6 flagged as bestsellers
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
     const rows = await sql`
         with sold as (
             select oi.food_id, sum(oi.quantity) as qty
@@ -83,6 +83,7 @@ router.get("/", async (_req, res) => {
         select f.*, coalesce(r.qty, 0) as order_count, (r.r is not null and r.r <= 6) as bestseller
         from foods f left join ranked r on r.food_id = f.id
         order by f.category, f.name`;
+    publicCache(req, res);
     res.json({ foods: rows.map(toFood) });
 });
 
