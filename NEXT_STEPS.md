@@ -51,8 +51,8 @@ Checks that passed: `npm run lint`, `npm run build`, 19 API checks for options, 
 ## Non-UI gaps (backlog)
 
 - [ ] **Rotate the Razorpay test secret** (it was pasted in chat): Razorpay dashboard → Test Mode → API Keys → Regenerate, then update `.env`.
-- [ ] **Razorpay webhook** (`payment.captured`, `refund.processed`) so payments confirm even if the customer never reopens the order. Needs a public URL, so do it after deploying.
-- [ ] **Deploy to Vercel** for a live link. Ask first: it uploads `.env` values to Vercel. Add the Razorpay keys there too.
+- [ ] **Razorpay webhook** (`payment.captured`, `refund.processed`) so payments confirm even if the customer never reopens the order. The public URL now exists: https://zaika.yusufhussain.in/api/...
+- [x] **Deployed to Vercel** (1 Nov 2026): https://zaika.yusufhussain.in. Every push to `main` deploys. Production has its own `JWT_SECRET` and a `CRON_SECRET`; the database is the same Neon project as local.
 - [ ] **Cloudinary preset** `zaika_unsigned` (Unsigned, folder `zaika`). Until then the admin can only paste image links.
 - [ ] **Commit automated tests.**
   - The API checks (options, Razorpay) and browser flows were throwaway scripts; recreate them in `tests/`.
